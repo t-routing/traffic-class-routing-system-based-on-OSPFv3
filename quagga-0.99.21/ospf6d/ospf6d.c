@@ -43,6 +43,8 @@
 #include "ospf6_abr.h"
 #include "ospf6_flood.h"
 #include "ospf6d.h"
+//Added by Shu Yang
+#include "ospf6_intra_tcr.h"
 
 #ifdef HAVE_SNMP
 #include "ospf6_snmp.h"
@@ -112,6 +114,7 @@ config_write_ospf6_debug (struct vty *vty)
   config_write_ospf6_debug_brouter (vty);
   config_write_ospf6_debug_asbr (vty);
   config_write_ospf6_debug_abr (vty);
+  config_write_ospf6_debug_abr_tcr (vty);
   config_write_ospf6_debug_flood (vty);
   vty_out (vty, "!%s", VNL);
   return 0;
@@ -178,6 +181,7 @@ DEFUN (show_ipv6_ospf6_database,
   struct ospf6 *o = ospf6;
   struct ospf6_area *oa;
   struct ospf6_interface *oi;
+  char area_id[16];
 
   OSPF6_CMD_CHECK_RUNNING ();
 
@@ -185,6 +189,12 @@ DEFUN (show_ipv6_ospf6_database,
 
   for (ALL_LIST_ELEMENTS_RO (o->area_list, i, oa))
     {
+      if (IS_OSPF6_DEBUG_TCR (PROCESS) )
+	{
+	  inet_ntop (AF_INET, &oa->area_id, area_id, sizeof (area_id));	
+	  vty_out (vty, "[Area id: %s, LSA number: %d]", area_id, oa->lsdb->count);
+	}
+  
       vty_out (vty, AREA_LSDB_TITLE_FORMAT, VNL, oa->name, VNL, VNL);
       ospf6_lsdb_show (vty, level, NULL, NULL, NULL, oa->lsdb);
     }
@@ -1784,10 +1794,17 @@ ospf6_init (void)
   install_element_ospf6_debug_neighbor ();
   install_element_ospf6_debug_zebra ();
   install_element_ospf6_debug_spf ();
+
+  /*******************Added by Shu Yang***************/
+  install_element_ospf6_debug_tcr ();
+  /***************************************************/
+
   install_element_ospf6_debug_route ();
   install_element_ospf6_debug_brouter ();
   install_element_ospf6_debug_asbr ();
+  install_element_ospf6_debug_asbr_tcr ();
   install_element_ospf6_debug_abr ();
+  install_element_ospf6_debug_abr_tcr ();
   install_element_ospf6_debug_flood ();
 
   install_element (VIEW_NODE, &show_version_ospf6_cmd);

@@ -13,14 +13,14 @@ sbin_PROGRAMS = ospf6d
 libospf6_a_SOURCES = \
 	ospf6_network.c ospf6_message.c ospf6_lsa.c ospf6_lsdb.c \
 	ospf6_top.c ospf6_area.c ospf6_interface.c ospf6_neighbor.c \
-	ospf6_flood.c ospf6_route.c ospf6_intra.c ospf6_zebra.c \
+	ospf6_flood.c ospf6_route.c ospf6_intra.c ospf6_intra_tcr.c ospf6_tcr_class.c ospf6_tcr_route.c ospf6_zebra.c ospf6_abr_tcr.c ospf6_asbr_tcr.c\
 	ospf6_spf.c ospf6_proto.c ospf6_asbr.c ospf6_abr.c ospf6_snmp.c \
 	ospf6d.c
 
 noinst_HEADERS = \
 	ospf6_network.h ospf6_message.h ospf6_lsa.h ospf6_lsdb.h \
 	ospf6_top.h ospf6_area.h ospf6_interface.h ospf6_neighbor.h \
-	ospf6_flood.h ospf6_route.h ospf6_intra.h ospf6_zebra.h \
+	ospf6_flood.h ospf6_route.h ospf6_intra.h ospf6_intra_tcr.h ospf6_tcr_class.h ospf6_tcr_route.h ospf6_zebra.h ospf6_abr_tcr.h ospf6_asbr_tcr.h ospf6_tcr_lsa.h\
 	ospf6_spf.h ospf6_proto.h ospf6_asbr.h ospf6_abr.h ospf6_snmp.h \
 	ospf6d.h
 

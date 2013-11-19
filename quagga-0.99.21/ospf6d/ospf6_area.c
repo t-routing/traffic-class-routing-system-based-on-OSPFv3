@@ -44,6 +44,10 @@
 #include "ospf6_intra.h"
 #include "ospf6_abr.h"
 #include "ospf6d.h"
+//**************added by Shu Yang****************
+#include "ospf6_tcr_route.h"
+#include "ospf6_intra_tcr.h"
+//***********************************************
 
 int
 ospf6_area_cmp (void *va, void *vb)
@@ -73,7 +77,11 @@ ospf6_area_lsdb_hook_add (struct ospf6_lsa *lsa)
     case OSPF6_LSTYPE_INTRA_PREFIX:
       ospf6_intra_prefix_lsa_add (lsa);
       break;
-
+      /*
+    case OSPF6_LSTYPE_INTRA_TCR:
+      ospf6_intra_tcr_lsa_add (lsa);
+      break;
+      */
     case OSPF6_LSTYPE_INTER_PREFIX:
     case OSPF6_LSTYPE_INTER_ROUTER:
       ospf6_abr_examin_summary (lsa, (struct ospf6_area *) lsa->lsdb->data);
@@ -131,6 +139,32 @@ ospf6_area_route_hook_remove (struct ospf6_route *route)
     ospf6_route_remove (copy, ospf6->route_table);
 }
 
+static void
+ospf6_area_tcr_route_hook_add (struct ospf6_tcr_route *tcr_route)
+{
+  struct ospf6_tcr_route *copy = NULL;
+  copy = ospf6_tcr_route_copy (tcr_route);
+  //memcpy (copy, tcr_route, sizeof (struct ospf6_tcr_route));
+
+  //copy = ospf6_tcr_route_copy (tcr_route);
+  //zlog_debug ("address: %lu", copy);
+  zlog_debug ("Before insert into the top table");
+  ospf6_tcr_route_table_print (ospf6->tcr_route_table);
+  ospf6_tcr_route_add (copy, ospf6->tcr_route_table);
+  zlog_debug ("After insert into the top table");
+  ospf6_tcr_route_table_print (ospf6->tcr_route_table);
+}
+
+static void
+ospf6_area_tcr_route_hook_remove (struct ospf6_tcr_route *tcr_route)
+{
+  struct ospf6_tcr_route *copy;
+
+  copy = ospf6_tcr_route_lookup (tcr_route->dst_prefix, tcr_route->src_prefix, tcr_route->flow_label, ospf6->tcr_route_table);
+  if (copy)
+    ospf6_tcr_route_remove (copy, ospf6->tcr_route_table);
+}
+
 /* Make new area structure */
 struct ospf6_area *
 ospf6_area_create (u_int32_t area_id, struct ospf6 *o)
@@ -156,9 +190,23 @@ ospf6_area_create (u_int32_t area_id, struct ospf6 *o)
   oa->route_table->hook_add = ospf6_area_route_hook_add;
   oa->route_table->hook_remove = ospf6_area_route_hook_remove;
 
+  //***************added by Shu Yang******************
+  oa->tcr_route_table = OSPF6_TCR_ROUTE_TABLE_CREATE (AREA, TCR_RESULTS);
+  oa->tcr_route_table->hook_add = ospf6_area_tcr_route_hook_add;
+  oa->tcr_route_table->hook_remove = ospf6_area_tcr_route_hook_remove;
+  oa->tcr_route_table->scope = oa;
+
+  oa->summary_tcr = OSPF6_TCR_ROUTE_TABLE_CREATE (AREA, SUMMARY_TCRS);
+  oa->summary_tcr->scope = oa;
+  oa->summary_tcr->hook_add = NULL;
+  oa->summary_tcr->hook_remove = NULL;
+  //oa->summary_tcr
+
+  //**************************************************
+
   oa->range_table = OSPF6_ROUTE_TABLE_CREATE (AREA, PREFIX_RANGES);
   oa->range_table->scope = oa;
-  oa->summary_prefix = OSPF6_ROUTE_TABLE_CREATE (AREA, SUMMARY_PREFIXES);
+  oa->summary_prefix = OSPF6_ROUTE_TABLE_CREATE (AREA, SUMMARY_TCRS);
   oa->summary_prefix->scope = oa;
   oa->summary_router = OSPF6_ROUTE_TABLE_CREATE (AREA, SUMMARY_ROUTERS);
   oa->summary_router->scope = oa;
@@ -188,6 +236,10 @@ ospf6_area_delete (struct ospf6_area *oa)
   ospf6_route_table_delete (oa->range_table);
   ospf6_route_table_delete (oa->summary_prefix);
   ospf6_route_table_delete (oa->summary_router);
+  
+  /***************added by Shu Yang****************/
+  ospf6_route_table_delete (oa->summary_tcr);
+  /************************************************/
 
   /* ospf6 interface list */
   for (ALL_LIST_ELEMENTS (oa->if_list, n, nnode, oi))
@@ -208,7 +260,7 @@ ospf6_area_delete (struct ospf6_area *oa)
 
   listnode_delete (oa->ospf6->area_list, oa);
   oa->ospf6 = NULL;
-
+  
   /* free area */
   XFREE (MTYPE_OSPF6_AREA, oa);
 }
@@ -274,7 +326,7 @@ ospf6_area_show (struct vty *vty, struct ospf6_area *oa)
   vty_out (vty, "     Interface attached to this area:");
   for (ALL_LIST_ELEMENTS_RO (oa->if_list, i, oi))
     vty_out (vty, " %s", oi->interface->name);
-  
+  //zlog_debug ("temp count: %d", oa->lsdb->count);
   vty_out (vty, "%s", VNL);
 }
 

@@ -213,7 +213,7 @@ ospf6_install_lsa (struct ospf6_lsa *lsa)
 
   if (IS_OSPF6_DEBUG_LSA_TYPE (lsa->header->type) ||
       IS_OSPF6_DEBUG_EXAMIN_TYPE (lsa->header->type))
-    zlog_debug ("Install LSA: %s", lsa->name);
+    zlog_debug ("ospf6_install_lsa, Install LSA: %s", lsa->name);
 
   /* Remove the old instance from all neighbors' Link state
      retransmission list (RFC2328 13.2 last paragraph) */

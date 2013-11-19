@@ -48,6 +48,7 @@ ospf6_lsdb_create (void *data)
 
   lsdb->data = data;
   lsdb->table = route_table_init ();
+  zlog_debug ("Create a new lsdb!");
   return lsdb;
 }
 
@@ -111,6 +112,7 @@ ospf6_lsdb_add (struct ospf6_lsa *lsa, struct ospf6_lsdb *lsdb)
                       sizeof (lsa->header->adv_router));
   ospf6_lsdb_set_key (&key, &lsa->header->id, sizeof (lsa->header->id));
 
+  zlog_debug ("Enter lsdb add!");
   current = route_node_get (lsdb->table, (struct prefix *) &key);
   old = current->info;
   current->info = lsa;
@@ -118,6 +120,7 @@ ospf6_lsdb_add (struct ospf6_lsa *lsa, struct ospf6_lsdb *lsdb)
 
   if (old)
     {
+      zlog_debug ("The old lsa exists");
       if (old->prev)
         old->prev->next = lsa;
       if (old->next)
@@ -127,6 +130,7 @@ ospf6_lsdb_add (struct ospf6_lsa *lsa, struct ospf6_lsdb *lsdb)
     }
   else
     {
+      zlog_debug ("The old lsa does not exist");
       /* next link */
       nextnode = current;
       route_lock_node (nextnode);
@@ -160,6 +164,7 @@ ospf6_lsdb_add (struct ospf6_lsa *lsa, struct ospf6_lsdb *lsdb)
         }
 
       lsdb->count++;
+      zlog_debug ("After adding %s [type:%d], there are %d LSAs!", lsa->name, ntohs(lsa->header->type), lsdb->count);
     }
 
   if (old)
@@ -211,6 +216,8 @@ ospf6_lsdb_remove (struct ospf6_lsa *lsa, struct ospf6_lsdb *lsdb)
   struct route_node *node;
   struct prefix_ipv6 key;
 
+  zlog_debug ("Enter lsdb delete!");
+
   memset (&key, 0, sizeof (key));
   ospf6_lsdb_set_key (&key, &lsa->header->type, sizeof (lsa->header->type));
   ospf6_lsdb_set_key (&key, &lsa->header->adv_router,
@@ -227,6 +234,7 @@ ospf6_lsdb_remove (struct ospf6_lsa *lsa, struct ospf6_lsdb *lsdb)
 
   node->info = NULL;
   lsdb->count--;
+  zlog_debug ("After deleting, there are %d LSAs!", lsdb->count);
 
   if (lsdb->hook_remove)
     (*lsdb->hook_remove) (lsa);
@@ -246,12 +254,10 @@ ospf6_lsdb_lookup (u_int16_t type, u_int32_t id, u_int32_t adv_router,
 
   if (lsdb == NULL)
     return NULL;
-
   memset (&key, 0, sizeof (key));
   ospf6_lsdb_set_key (&key, &type, sizeof (type));
   ospf6_lsdb_set_key (&key, &adv_router, sizeof (adv_router));
   ospf6_lsdb_set_key (&key, &id, sizeof (id));
-
   node = route_node_lookup (lsdb->table, (struct prefix *) &key);
   if (node == NULL || node->info == NULL)
     return NULL;

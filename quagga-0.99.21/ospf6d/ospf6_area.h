@@ -55,11 +55,21 @@ struct ospf6_area
   struct ospf6_route_table *spf_table;
   struct ospf6_route_table *route_table;
 
+  /*************Added by Shu Yang************/
+  struct ospf6_tcr_route_table *tcr_route_table;
+  struct ospf6_tcr_route_table *summary_tcr;
+  /*****************************************/
+
   struct thread  *thread_spf_calculation;
   struct thread  *thread_route_calculation;
 
   struct thread *thread_router_lsa;
   struct thread *thread_intra_prefix_lsa;
+  
+  /***********Added by Shu Yang*****************/
+  struct thread *thread_intra_tcr_lsa;
+  /********************************************/
+
   u_int32_t router_lsa_size_limit;
 
   /* Area announce list */
@@ -94,9 +104,9 @@ struct ospf6_area
     char *name;
     struct prefix_list *list;
   } plist_out;
+
 #define PREFIX_NAME_OUT(A)  (A)->plist_out.name
 #define PREFIX_LIST_OUT(A)  (A)->plist_out.list
-
 };
 
 #define OSPF6_AREA_ENABLE     0x01

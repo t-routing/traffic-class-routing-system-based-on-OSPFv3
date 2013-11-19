@@ -193,6 +193,12 @@ struct ospf6_route_table
 #define OSPF6_TABLE_TYPE_SUMMARY_PREFIXES  7
 #define OSPF6_TABLE_TYPE_SUMMARY_ROUTERS   8
 
+//**********added by Shu Yang****************
+//email: yangshu1988@gmail.com
+#define OSPF6_TABLE_TYPE_TCR_RESULTS   9
+#define OSPF6_TABLE_TYPE_SUMMARY_TCRS   10
+//*******************************************
+
 #define OSPF6_ROUTE_TABLE_CREATE(s, t) \
   ospf6_route_table_create (OSPF6_SCOPE_TYPE_ ## s, \
                             OSPF6_TABLE_TYPE_ ## t)
@@ -301,6 +307,7 @@ extern int config_write_ospf6_debug_route (struct vty *vty);
 extern void install_element_ospf6_debug_route (void);
 extern void ospf6_route_init (void);
 extern void ospf6_clean (void);
-
+extern int ospf6_route_cmp
+ (struct ospf6_route *, struct ospf6_route *);
 #endif /* OSPF6_ROUTE_H */
 

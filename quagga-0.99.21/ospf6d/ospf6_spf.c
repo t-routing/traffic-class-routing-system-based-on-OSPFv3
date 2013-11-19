@@ -40,6 +40,7 @@
 #include "ospf6_intra.h"
 #include "ospf6_interface.h"
 #include "ospf6d.h"
+#include "ospf6_intra_tcr.h"
 
 unsigned char conf_debug_ospf6_spf = 0;
 
@@ -414,6 +415,7 @@ ospf6_spf_calculation (u_int32_t router_id,
   /* Actually insert root to the candidate-list as the only candidate */
   pqueue_enqueue (root, candidate_list);
 
+  zlog_debug ("Spf calculation: start!");
   /* Iterate until candidate-list becomes empty */
   while (candidate_list->size)
     {
@@ -421,6 +423,8 @@ ospf6_spf_calculation (u_int32_t router_id,
       v = pqueue_dequeue (candidate_list);
 
       /* installing may result in merging or rejecting of the vertex */
+      zlog_debug ("enter the loop");
+
       if (ospf6_spf_install (v, result_table) < 0)
         continue;
 
@@ -500,6 +504,32 @@ ospf6_spf_log_database (struct ospf6_area *oa)
   zlog_debug ("%s", buffer);
 }
 
+/************************************************/
+//Added by Shu Yang, email:yangshu1988@gmail.com
+/***********************************************/
+void ospf6_process_traffic_class (u_int32_t router_id, 
+				  struct ospf6_area * oa)
+{
+  //struct ospf6_lsa *lsa;
+  
+  if (IS_OSPF6_DEBUG_TCR (PROCESS) )
+    zlog_debug ("ospf6_process_traffic_class: Begin!");
+  
+  /*
+  zlog_debug ("After begin!");
+  lsa = ospf6_lsdb_lookup (htons (OSPF6_LSTYPE_INTRA_TCR), 
+			   htonl (0), router_id, oa->lsdb);
+  zlog_debug ("After lookup!");
+  
+  if(lsa!=NULL)
+    ospf6_intra_tcr_lsa_show (lsa);
+  */
+
+  ospf6_intra_traffic_class_calculation (oa);
+  if (IS_OSPF6_DEBUG_TCR (PROCESS) )
+    zlog_debug ("ospf6_process_traffic_class: End!");
+}
+
 static int
 ospf6_spf_calculation_thread (struct thread *t)
 {
@@ -526,7 +556,10 @@ ospf6_spf_calculation_thread (struct thread *t)
 
   ospf6_intra_route_calculation (oa);
   ospf6_intra_brouter_calculation (oa);
-
+  
+  // TBD, the parameter is: router_id, tcr_table, oa
+  // Added by Shu Yang
+  ospf6_process_traffic_class (oa->ospf6->router_id, oa);
   return 0;
 }
 

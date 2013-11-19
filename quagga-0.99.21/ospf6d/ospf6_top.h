@@ -50,6 +50,7 @@ struct ospf6
   struct route_table *external_id_table;
   u_int32_t external_id;
 
+  struct ospf6_tcr_route_table *tcr_route_table;
   /* redistribute route-map */
   struct
   {

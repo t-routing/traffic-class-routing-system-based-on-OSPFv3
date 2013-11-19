@@ -79,7 +79,7 @@ am_libospf6_a_OBJECTS = ospf6_network.$(OBJEXT) \
 	ospf6_lsdb.$(OBJEXT) ospf6_top.$(OBJEXT) ospf6_area.$(OBJEXT) \
 	ospf6_interface.$(OBJEXT) ospf6_neighbor.$(OBJEXT) \
 	ospf6_flood.$(OBJEXT) ospf6_route.$(OBJEXT) \
-	ospf6_intra.$(OBJEXT) ospf6_zebra.$(OBJEXT) \
+	ospf6_intra.$(OBJEXT) ospf6_zebra.$(OBJEXT) ospf6_intra_tcr.$(OBJEXT) ospf6_tcr_class.$(OBJEXT) ospf6_tcr_route.$(OBJEXT)  ospf6_abr_tcr.$(OBJEXT) ospf6_asbr_tcr.$(OBJEXT)\
 	ospf6_spf.$(OBJEXT) ospf6_proto.$(OBJEXT) ospf6_asbr.$(OBJEXT) \
 	ospf6_abr.$(OBJEXT) ospf6_snmp.$(OBJEXT) ospf6d.$(OBJEXT)
 libospf6_a_OBJECTS = $(am_libospf6_a_OBJECTS)
@@ -89,7 +89,7 @@ am__objects_1 = ospf6_network.$(OBJEXT) ospf6_message.$(OBJEXT) \
 	ospf6_lsa.$(OBJEXT) ospf6_lsdb.$(OBJEXT) ospf6_top.$(OBJEXT) \
 	ospf6_area.$(OBJEXT) ospf6_interface.$(OBJEXT) \
 	ospf6_neighbor.$(OBJEXT) ospf6_flood.$(OBJEXT) \
-	ospf6_route.$(OBJEXT) ospf6_intra.$(OBJEXT) \
+	ospf6_route.$(OBJEXT) ospf6_intra.$(OBJEXT) ospf6_intra_tcr.$(OBJEXT) ospf6_tcr_class.$(OBJEXT) ospf6_tcr_route.$(OBJEXT)  ospf6_abr_tcr.$(OBJEXT) ospf6_asbr_tcr.$(OBJEXT)\
 	ospf6_zebra.$(OBJEXT) ospf6_spf.$(OBJEXT) \
 	ospf6_proto.$(OBJEXT) ospf6_asbr.$(OBJEXT) ospf6_abr.$(OBJEXT) \
 	ospf6_snmp.$(OBJEXT) ospf6d.$(OBJEXT)
@@ -322,14 +322,14 @@ noinst_LIBRARIES = libospf6.a
 libospf6_a_SOURCES = \
 	ospf6_network.c ospf6_message.c ospf6_lsa.c ospf6_lsdb.c \
 	ospf6_top.c ospf6_area.c ospf6_interface.c ospf6_neighbor.c \
-	ospf6_flood.c ospf6_route.c ospf6_intra.c ospf6_zebra.c \
+	ospf6_flood.c ospf6_route.c ospf6_intra.c ospf6_intra_tcr.c ospf6_tcr_class.c ospf6_tcr_route.c ospf6_zebra.c ospf6_abr_tcr.c ospf6_asbr_tcr.c\
 	ospf6_spf.c ospf6_proto.c ospf6_asbr.c ospf6_abr.c ospf6_snmp.c \
 	ospf6d.c
 
 noinst_HEADERS = \
 	ospf6_network.h ospf6_message.h ospf6_lsa.h ospf6_lsdb.h \
 	ospf6_top.h ospf6_area.h ospf6_interface.h ospf6_neighbor.h \
-	ospf6_flood.h ospf6_route.h ospf6_intra.h ospf6_zebra.h \
+	ospf6_flood.h ospf6_route.h ospf6_intra.h ospf6_intra_tcr.h ospf6_tcr_class.h ospf6_tcr_route.h ospf6_zebra.h ospf6_tcr_lsa.h ospf6_abr_tcr.h ospf6_asbr_tcr.h\
 	ospf6_spf.h ospf6_proto.h ospf6_asbr.h ospf6_abr.h ospf6_snmp.h \
 	ospf6d.h
 
@@ -442,6 +442,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ospf6_flood.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ospf6_interface.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ospf6_intra.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ospf6_intra_tcr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ospf6_abr_tcr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ospf6_asbr_tcr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ospf6_tcr_class.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ospf6_tcr_route.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ospf6_lsa.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ospf6_lsdb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ospf6_main.Po@am__quote@

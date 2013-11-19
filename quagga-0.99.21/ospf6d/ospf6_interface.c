@@ -41,6 +41,9 @@
 #include "ospf6_intra.h"
 #include "ospf6_spf.h"
 #include "ospf6d.h"
+#include "ospf6_proto.h"
+#include "ospf6_intra_tcr.h"
+#include "ospf6_tcr_class.h"
 
 unsigned char conf_debug_ospf6_interface = 0;
 
@@ -106,6 +109,9 @@ ospf6_interface_create (struct interface *ifp)
 
   oi->area = (struct ospf6_area *) NULL;
   oi->neighbor_list = list_new ();
+  /*********Added by Shu Yang*************/
+  oi->if_traffic_classes = list_new ();
+
   oi->neighbor_list->cmp = ospf6_neighbor_cmp;
   oi->linklocal_addr = (struct in6_addr *) NULL;
   oi->instance_id = OSPF6_INTERFACE_INSTANCE_ID;
@@ -158,7 +164,8 @@ ospf6_interface_delete (struct ospf6_interface *oi)
       ospf6_neighbor_delete (on);
   
   list_delete (oi->neighbor_list);
-
+  /************Added by Shu Yang**************/
+  list_delete (oi->if_traffic_classes);
   THREAD_OFF (oi->thread_send_hello);
   THREAD_OFF (oi->thread_send_lsupdate);
   THREAD_OFF (oi->thread_send_lsack);
@@ -374,6 +381,11 @@ ospf6_interface_connected_route_update (struct interface *ifp)
   OSPF6_LINK_LSA_SCHEDULE (oi);
   OSPF6_INTRA_PREFIX_LSA_SCHEDULE_TRANSIT (oi);
   OSPF6_INTRA_PREFIX_LSA_SCHEDULE_STUB (oi->area);
+  /*************** Added by Shu Yang *********/
+  zlog_debug ("Before OSPF6_INTRA_TCR_LSA_SCHEDULE!");
+  OSPF6_INTRA_TCR_LSA_SCHEDULE (oi->area);
+  zlog_debug ("After OSPF6_INTRA_TCR_LSA_SCHEDULE!");
+  /*******************************************/
 }
 
 static void
@@ -407,11 +419,17 @@ ospf6_interface_state_change (u_char next_state, struct ospf6_interface *oi)
     ospf6_sso (oi->interface->ifindex, &alldrouters6, IPV6_JOIN_GROUP);
 
   OSPF6_ROUTER_LSA_SCHEDULE (oi->area);
+
   if (next_state == OSPF6_INTERFACE_DOWN)
     {
       OSPF6_NETWORK_LSA_EXECUTE (oi);
       OSPF6_INTRA_PREFIX_LSA_EXECUTE_TRANSIT (oi);
       OSPF6_INTRA_PREFIX_LSA_SCHEDULE_STUB (oi->area);
+      /*************** Added by Shu Yang *********/
+      zlog_debug ("Before OSPF6_INTRA_TCR_LSA_SCHEDULE!");
+      OSPF6_INTRA_TCR_LSA_SCHEDULE (oi->area);
+      zlog_debug ("After OSPF6_INTRA_TCR_LSA_SCHEDULE!");
+      /*******************************************/
     }
   else if (prev_state == OSPF6_INTERFACE_DR ||
            next_state == OSPF6_INTERFACE_DR)
@@ -419,6 +437,11 @@ ospf6_interface_state_change (u_char next_state, struct ospf6_interface *oi)
       OSPF6_NETWORK_LSA_SCHEDULE (oi);
       OSPF6_INTRA_PREFIX_LSA_SCHEDULE_TRANSIT (oi);
       OSPF6_INTRA_PREFIX_LSA_SCHEDULE_STUB (oi->area);
+      /*************** Added by Shu Yang *********/
+      zlog_debug ("Before OSPF6_INTRA_TCR_LSA_SCHEDULE!");
+      OSPF6_INTRA_TCR_LSA_SCHEDULE (oi->area);
+      zlog_debug ("After OSPF6_INTRA_TCR_LSA_SCHEDULE!");
+      /*******************************************/
     }
 }
 
@@ -1108,6 +1131,69 @@ DEFUN (no_ipv6_ospf6_ifmtu,
   return CMD_SUCCESS;
 }
 
+
+/********************Configuration Command****************/
+//Added by Shu Yang
+// 
+DEFUN (ospf6_routing_class,
+       ospf6_routing_class_cmd,
+       "routing-class X:X::X:X/M X:X::X:X/M <1-1048575> <1-65535>",
+       "Add a traffic class into the interface structure\n"
+       "Destination prefixes\n"
+       "Source prefixes\n"
+       "Flow label\n"
+       "Metric value\n")
+{
+  struct prefix sp, dp;
+  struct in_addr area_id;
+  int ret;
+  unsigned long int flow_label, metric_cost;
+  struct ospf6_traffic_class *cur_class;
+  struct ospf6_interface *oi;
+  struct interface *ifp;
+
+  ifp = (struct interface *) vty->index;
+  assert (ifp);
+
+  oi = (struct ospf6_interface *) ifp->info;
+  if (oi == NULL)
+    oi = ospf6_interface_create (ifp);
+  assert (oi);
+
+  ret = str2prefix (argv[0], &dp);
+  if (ret != 1 || dp.family != AF_INET6)
+    {
+      vty_out (vty, "Malformed argument: %s%s", argv[0], VNL);
+      return CMD_SUCCESS;
+    }
+  ret = str2prefix (argv[1], &sp);
+  if (ret != 1 || sp.family != AF_INET6)
+    {
+      vty_out (vty, "Malformed argument: %s%s", argv[1], VNL);
+      return CMD_SUCCESS;
+    }
+  
+  flow_label = strtol (argv[2], NULL, 10); 
+  metric_cost = strtol (argv[3], NULL, 10);
+  
+  cur_class = ospf6_traffic_class_get (oi->if_traffic_classes, &dp, &sp, flow_label);
+  
+  if(cur_class->metric_cost != -1)
+    vty_out (vty, "routing-class %s %s %d %d is duplicated\n", argv[0], argv[1], flow_label, metric_cost, VNL);
+  else
+    cur_class->metric_cost = metric_cost;
+  /*ret = ospf_network_set (ospf, &p, area_id);
+  if (ret == 0)
+    {
+      vty_out (vty, "There is already same network statement.%s", VTY_NEWLINE);
+      return CMD_WARNING;
+    }
+  
+    zlog_debug("xxxxx");*/
+  return CMD_SUCCESS;
+}
+
+
 DEFUN (ipv6_ospf6_cost,
        ipv6_ospf6_cost_cmd,
        "ipv6 ospf6 cost <1-65535>",
@@ -1153,6 +1239,11 @@ DEFUN (ipv6_ospf6_cost,
       OSPF6_NETWORK_LSA_SCHEDULE (oi);
       OSPF6_INTRA_PREFIX_LSA_SCHEDULE_TRANSIT (oi);
       OSPF6_INTRA_PREFIX_LSA_SCHEDULE_STUB (oi->area);
+      /*************** Added by Shu Yang *********/
+      zlog_debug ("Before OSPF6_INTRA_TCR_LSA_SCHEDULE!");
+      OSPF6_INTRA_TCR_LSA_SCHEDULE (oi->area);
+      zlog_debug ("After OSPF6_INTRA_TCR_LSA_SCHEDULE!");
+      /*******************************************/
     }
 
   return CMD_SUCCESS;
@@ -1443,7 +1534,7 @@ DEFUN (ipv6_ospf6_advertise_prefix_list,
 
   if (oi->plist_name)
     XFREE (MTYPE_PREFIX_LIST_STR, oi->plist_name);
-  oi->plist_name = XSTRDUP (MTYPE_PREFIX_LIST_STR, argv[0]);
+  oi->plist_name = 	XSTRDUP (MTYPE_PREFIX_LIST_STR, argv[0]);
 
   ospf6_interface_connected_route_update (oi->interface);
 
@@ -1456,6 +1547,11 @@ DEFUN (ipv6_ospf6_advertise_prefix_list,
           OSPF6_INTRA_PREFIX_LSA_SCHEDULE_TRANSIT (oi);
         }
       OSPF6_INTRA_PREFIX_LSA_SCHEDULE_STUB (oi->area);
+      /*************** Added by Shu Yang *********/
+      zlog_debug ("Before OSPF6_INTRA_TCR_LSA_SCHEDULE!");
+      OSPF6_INTRA_TCR_LSA_SCHEDULE (oi->area);
+      zlog_debug ("After OSPF6_INTRA_TCR_LSA_SCHEDULE!");
+      /*******************************************/
     }
 
   return CMD_SUCCESS;
@@ -1499,6 +1595,12 @@ DEFUN (no_ipv6_ospf6_advertise_prefix_list,
           OSPF6_INTRA_PREFIX_LSA_SCHEDULE_TRANSIT (oi);
         }
       OSPF6_INTRA_PREFIX_LSA_SCHEDULE_STUB (oi->area);
+      /*************** Added by Shu Yang *********/
+      zlog_debug ("Before OSPF6_INTRA_TCR_LSA_SCHEDULE!");
+      OSPF6_INTRA_TCR_LSA_SCHEDULE (oi->area);
+      zlog_debug ("After OSPF6_INTRA_TCR_LSA_SCHEDULE!");
+      /*******************************************/
+
     }
 
   return CMD_SUCCESS;
@@ -1603,6 +1705,7 @@ ospf6_interface_init (void)
   install_element (INTERFACE_NODE, &interface_desc_cmd);
   install_element (INTERFACE_NODE, &no_interface_desc_cmd);
   install_element (INTERFACE_NODE, &ipv6_ospf6_cost_cmd);
+  install_element (INTERFACE_NODE, &ospf6_routing_class_cmd);
   install_element (INTERFACE_NODE, &ipv6_ospf6_ifmtu_cmd);
   install_element (INTERFACE_NODE, &no_ipv6_ospf6_ifmtu_cmd);
   install_element (INTERFACE_NODE, &ipv6_ospf6_deadinterval_cmd);

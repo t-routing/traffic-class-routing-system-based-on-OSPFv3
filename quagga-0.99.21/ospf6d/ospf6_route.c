@@ -226,7 +226,7 @@ ospf6_route_unlock (struct ospf6_route *route)
 /* Route compare function. If ra is more preferred, it returns
    less than 0. If rb is more preferred returns greater than 0.
    Otherwise (neither one is preferred), returns 0 */
-static int
+int
 ospf6_route_cmp (struct ospf6_route *ra, struct ospf6_route *rb)
 {
   assert (ospf6_route_is_same (ra, rb));

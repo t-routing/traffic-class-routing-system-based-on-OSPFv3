@@ -1,0 +1,3 @@
+Host routes for stub networks no longer appear in the router-LSA.
+   Rather, they are included in intra-area-prefix-LSAs.
+

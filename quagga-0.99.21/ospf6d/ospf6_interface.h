@@ -44,6 +44,8 @@ struct ospf6_interface
 
   /* list of ospf6 neighbor */
   struct list *neighbor_list;
+  /* Added by Shu Yang  */
+  struct list *if_traffic_classes;
 
   /* linklocal address of this I/F */
   struct in6_addr *linklocal_addr;

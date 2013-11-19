@@ -48,6 +48,9 @@
 #include "ospf6_intra.h"
 #include "ospf6d.h"
 
+#include "ospf6_tcr_route.h"
+#include "ospf6_abr_tcr.h"
+
 /* global ospf6d variable */
 struct ospf6 *ospf6;
 
@@ -96,6 +99,69 @@ ospf6_top_route_hook_remove (struct ospf6_route *route)
 }
 
 static void
+ospf6_top_tcr_route_hook_add (struct ospf6_tcr_route *tcr_route)
+{
+  zlog_debug ("top_hook_add");
+  ospf6_abr_tcr_originate_summary (tcr_route);
+  ospf6_send_route_to_click(tcr_route);
+  //ospf6_zebra_route_update_add (route);
+  //connecting with click or zebra
+}
+
+/************* Added by Gautier XXX ****************/
+void ospf6_send_route_to_click(struct ospf6_tcr_route *tcr_route){
+	char update[126]; //14 (length of s) + 6 (spaces) + 32*3 (length of prefixes + next_hop) + 2 (prefix length) + 8 (port + flow_label) = 126
+	char s[] = "WRITE fib.add "; // "fib" is the name given to the element FIB_List in the Click router configuration
+	char space[] = " ";
+
+	char *dst_pref = (char *) malloc(sizeof(tcr_route->dst_prefix.u.prefix6)),
+		 *src_pref = (char *) malloc(sizeof(tcr_route->src_prefix.u.prefix6)),
+		 *next_hop = (char *) malloc(sizeof(tcr_route->nexthop[0].address));
+	memcpy(dst_pref, tcr_route->dst_prefix.u, sizeof(tcr_route->dst_prefix.u));
+	memcpy(src_pref, tcr_route->src_prefix.u, sizeof(tcr_route->src_prefix.u));
+	memcpy(next_hop, tcr_route->nexthop[0].address, sizeof(tcr_route->nexthop[0].address));
+
+	u_char dst_p_len = tcr_route->dst_prefix.prefixlen,
+			src_p_len = tcr_route->src_prefix.prefixlen;
+
+	u_int32_t flow_label = tcr_route->flow_label;
+
+	unsigned int port = tcr_route->nexthop[0].ifindex;
+
+	//We copy all the information in the update string
+	strcpy(update, s);
+	strcat(update, dst_pref);
+	strcat(update, space);
+	strcat(update, dst_p_len);
+	strcat(update, space);
+	strcat(update, src_pref);
+	strcat(update, space);
+	strcat(update, src_p_len);
+	strcat(update, space);
+	strcat(update, flow_label);
+	strcat(update, space);
+	strcat(update, next_hop);
+	strcat(update, space);
+	strcat(update, port);
+
+	free(dst_pref);
+	free(src_pref);
+	free(next_hop);
+
+	n = send(click_sock, update, strlen(update), 0);
+	if(n<=0)
+		zlog_notice("Fail sending route to Click");
+}
+
+static void
+ospf6_top_tcr_route_hook_remove (struct ospf6_tcr_route *tcr_route)
+{
+  ospf6_abr_tcr_originate_summary (tcr_route);
+  //ospf6_zebra_route_update_remove (route);
+  //connecting with click or zebra
+}
+
+static void
 ospf6_top_brouter_hook_add (struct ospf6_route *route)
 {
   ospf6_abr_examin_brouter (ADV_ROUTER_IN_PREFIX (&route->prefix));
@@ -141,7 +207,13 @@ ospf6_create (void)
   o->external_table->scope = o;
 
   o->external_id_table = route_table_init ();
-
+  
+  //***************added by Shu Yang******************
+  o->tcr_route_table = OSPF6_TCR_ROUTE_TABLE_CREATE (GLOBAL, TCR_RESULTS);
+  o->tcr_route_table->hook_add = ospf6_top_tcr_route_hook_add;
+  o->tcr_route_table->hook_remove = ospf6_top_tcr_route_hook_remove;
+  o->tcr_route_table->scope = o;
+  //**************************************************
   return o;
 }
 
